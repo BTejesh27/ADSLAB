@@ -1,145 +1,84 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Node structure for BST
-struct Node {
-    int data;
-    struct Node *left;
-    struct Node *right;
-};
+#define MAX_SIZE 100
 
-// Function to create a new node
-struct Node* createNode(int data) {
-    struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
-    newNode->data = data;
-    newNode->left = newNode->right = NULL;
-    return newNode;
+typedef struct {
+    int data[MAX_SIZE];
+    int size;
+} MinHeap;
+
+void initHeap(MinHeap* heap) {
+    heap->size = 0;
 }
 
-// Function to insert a node in BST
-struct Node* insertNode(struct Node* root, int data) {
-    if (root == NULL)
-        return createNode(data);
-
-    if (data < root->data)
-        root->left = insertNode(root->left, data);
-    else if (data > root->data)
-        root->right = insertNode(root->right, data);
-
-    return root;
+int parent(int index) {
+    return (index - 1) / 2;
 }
 
-// Function to find the height of the tree (longest path)
-int findLongestPath(struct Node* root) {
-    if (root == NULL)
-        return 0;
-
-    int leftDepth = findLongestPath(root->left);
-    int rightDepth = findLongestPath(root->right);
-
-    return (leftDepth > rightDepth ? leftDepth : rightDepth) + 1;
+int leftChild(int index) {
+    return (2 * index) + 1;
 }
 
-// Function to find the minimum value in BST
-int findMinValue(struct Node* root) {
-    struct Node* current = root;
-    while (current && current->left != NULL)
-        current = current->left;
-    return current->data;
+int rightChild(int index) {
+    return (2 * index) + 2;
 }
 
-// Function to swap left and right pointers of each node
-void mirrorTree(struct Node* root) {
-    if (root == NULL)
-        return;
-
-    struct Node* temp = root->left;
-    root->left = root->right;
-    root->right = temp;
-
-    mirrorTree(root->left);
-    mirrorTree(root->right);
+void swap(int* a, int* b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
 }
 
-// Function to search for a value in BST
-int search(struct Node* root, int value) {
-    if (root == NULL)
-        return 0;
-
-    if (root->data == value)
-        return 1;
-    else if (value < root->data)
-        return search(root->left, value);
-    else
-        return search(root->right, value);
-}
-
-// In-order traversal to display the tree
-void inorder(struct Node* root) {
-    if (root != NULL) {
-        inorder(root->left);
-        printf("%d ", root->data);
-        inorder(root->right);
+void insert(MinHeap* heap, int value) {
+    if (heap->size == MAX_SIZE) return;
+    heap->data[heap->size] = value;
+    int current = heap->size++;
+    while (current > 0 && heap->data[current] < heap->data[parent(current)]) {
+        swap(&heap->data[current], &heap->data[parent(current)]);
+        current = parent(current);
     }
 }
 
-// Main function
+void heapify(MinHeap* heap, int index) {
+    int smallest = index, left = leftChild(index), right = rightChild(index);
+    if (left < heap->size && heap->data[left] < heap->data[smallest]) smallest = left;
+    if (right < heap->size && heap->data[right] < heap->data[smallest]) smallest = right;
+    if (smallest != index) {
+        swap(&heap->data[index], &heap->data[smallest]);
+        heapify(heap, smallest);
+    }
+}
+
+int deleteMin(MinHeap* heap) {
+    if (heap->size == 0) return -1;
+    int min = heap->data[0];
+    heap->data[0] = heap->data[--heap->size];
+    heapify(heap, 0);
+    return min;
+}
+
+void display(MinHeap* heap) {
+    for (int i = 0; i < heap->size; i++) printf("%d ", heap->data[i]);
+    printf("\n");
+}
+
 int main() {
-    struct Node* root = NULL;
+    MinHeap heap;
+    initHeap(&heap);
     int choice, value;
-
     while (1) {
-        printf("\nBinary Search Tree Operations Menu:\n");
-        printf("1. Insert a node\n");
-        printf("2. Display in-order traversal\n");
-        printf("3. Find the number of nodes in the longest path\n");
-        printf("4. Find the minimum data value\n");
-        printf("5. Mirror the tree\n");
-        printf("6. Search for a value\n");
-        printf("7. Exit\n");
-        printf("Enter your choice: ");
+        printf("\n1. Insert\n2. Delete Min\n3. Display\n4. Exit\nEnter choice: ");
         scanf("%d", &choice);
-
-        switch (choice) {
-            case 1:
-                printf("Enter value to insert: ");
-                scanf("%d", &value);
-                root = insertNode(root, value);
-                printf("Value %d inserted.\n", value);
-                break;
-            case 2:
-                printf("Inorder traversal of the BST: ");
-                inorder(root);
-                printf("\n");
-                break;
-            case 3:
-                printf("Number of nodes in the longest path: %d\n", findLongestPath(root));
-                break;
-            case 4:
-                if (root != NULL)
-                    printf("Minimum data value in the tree: %d\n", findMinValue(root));
-                else
-                    printf("The tree is empty.\n");
-                break;
-            case 5:
-                mirrorTree(root);
-                printf("The tree has been mirrored.\n");
-                break;
-            case 6:
-                printf("Enter value to search: ");
-                scanf("%d", &value);
-                if (search(root, value))
-                    printf("Value %d found in the tree.\n", value);
-                else
-                    printf("Value %d not found in the tree.\n", value);
-                break;
-            case 7:
-                printf("Exiting program.\n");
-                return 0;
-            default:
-                printf("Invalid choice. Please try again.\n");
-        }
+        if (choice == 1) {
+            printf("Enter value: ");
+            scanf("%d", &value);
+            insert(&heap, value);
+        } else if (choice == 2) {
+            value = deleteMin(&heap);
+            if (value != -1) printf("Deleted: %d\n", value);
+        } else if (choice == 3) display(&heap);
+        else if (choice == 4) break;
     }
-
     return 0;
 }
